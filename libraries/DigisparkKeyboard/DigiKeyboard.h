@@ -72,6 +72,9 @@ PROGMEM char usbHidReportDescriptor[USB_CFG_HID_REPORT_DESCRIPTOR_LENGTH] = { /*
 #define MOD_ALT_RIGHT       (1<<6)
 #define MOD_GUI_RIGHT       (1<<7)
 
+#define KEY_SLASH   56
+#define CAPS_LOCK   57
+#define SEMI_COLON  51
 #define KEY_A       4
 #define KEY_B       5
 #define KEY_C       6
