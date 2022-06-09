@@ -4,7 +4,7 @@
   | |__| | | /  \_|   | . \ | | / /  \ \ | |  | |  \ \ / /
   |  _  /  | |   _    | |\ \| | | |__| | | |  | |   \ ' /
   | | \ \  | \__/ |   | | \ ' | |  __  |  \ \/ /     | |
-  |_|  \_\  \____/    |_|  \__| |_|  |_|   \__/      |_| 2013
+  |_|  \_\  \____/    |_|  \__| |_|  |_|   \__/      |_| 2013/2014
 
                 http://p.loussouarn.free.fr
 
@@ -15,7 +15,7 @@
          *******************************************************
 
 This sketch demonstrates how to use <TinyPinChange> library.
-It counts all the transitions on 2 different pins.
+It counts all the transitions (both edges) on 2 different pins.
 /!\CAUTION/!\: as <TinyPinChange> library can be shared (and it is with SoftSerial in this sketch) , the user shall test if the changes are related to the declared pins.
 
 Trick: By connecting Pin#1 to Pin#0 or to Pin#5 through a 1K resistor, you can generate transitions for testing purpose.
@@ -58,8 +58,8 @@ To display the sketch results on a PC (in a Terminal):
 #define FIRST_INPUT         0
 #define SECOND_INPUT        5
 
-volatile uint16_t FirstInputChangeCount=0;  /* Volatile since the variable will be updated in interruption */
-volatile uint16_t SecondInputChangeCount=0; /* Volatile since the variable will be updated in interruption */
+volatile uint16_t FirstInputChangeCount = 0;  /* Volatile since the variable will be updated in interruption */
+volatile uint16_t SecondInputChangeCount = 0; /* Volatile since the variable will be updated in interruption */
 
 SoftSerial MySerial(DEBUG_TX_RX_PIN, DEBUG_TX_RX_PIN, true); /* Tx/Rx on a single Pin !!! (Pin#2) */
 
@@ -70,17 +70,17 @@ void setup()
 {
   TinyPinChange_Init();
 
-  MySerial.begin(38400); /* Trick: use a "high" data rate (less time wasted in ISR and for transmitting each character) */
+  MySerial.begin(57600); /* Trick: use a "high" data rate (less time wasted in ISR and for transmitting each character) */
 
-  VirtualPortNb=TinyPinChange_RegisterIsr(FIRST_INPUT, InterruptFunctionToCall);
-  VirtualPortNb_=TinyPinChange_RegisterIsr(SECOND_INPUT, InterruptFunctionToCall);
+  VirtualPortNb  = TinyPinChange_RegisterIsr(FIRST_INPUT,  InterruptFunctionToCall);
+  VirtualPortNb_ = TinyPinChange_RegisterIsr(SECOND_INPUT, InterruptFunctionToCall);
 
   /* Enable Pin Change for each pin */
   TinyPinChange_EnablePin(FIRST_INPUT);
   TinyPinChange_EnablePin(SECOND_INPUT);
 
   MySerial.txMode();
-  MySerial.println(F("\n*** Tiny PinChange Demo ***"));
+  MySerial.println(F("\n*** Tiny PinChange Demo (Rising AND Falling edges) ***"));
   MySerial.print(F("Pin "));MySerial.print((int)FIRST_INPUT);
   MySerial.print(F(" is part of virtual port "));MySerial.println((int)VirtualPortNb);
 
@@ -88,7 +88,8 @@ void setup()
   MySerial.print(F(" is part of virtual port "));MySerial.println((int)VirtualPortNb_);
 
   MySerial.println(F("As you can see, virtual port is always port 0 for ATtiny85"));
-  MySerial.println(F("Remember <TinyPinChange> is also designed for UNO, MEGA and ATtiny84 ;-)"));
+  MySerial.println(F("Remember <TinyPinChange> is also designed for UNO, MEGA, ATtiny84 and ATtiny167 ;-)"));
+  MySerial.println(F("Type 1 to start display, 0 to stop display"));
  
   pinMode(LED_PIN, OUTPUT);
   
@@ -98,14 +99,12 @@ void setup()
 /* Function called in interruption in case of change on pins */
 void InterruptFunctionToCall(void)
 {
-uint8_t PortChange;
-    
-    PortChange = TinyPinChange_GetPinEvent(VirtualPortNb);
-    if(PortChange & TinyPinChange_PinToMsk(FIRST_INPUT)) /* Check FIRST_INPUT has changed */
+    if(TinyPinChange_Edge(VirtualPortNb, FIRST_INPUT)) /* Check FIRST_INPUT has changed (falling or rising edge) */
     {
         FirstInputChangeCount++; /* Rising AND Falling edges are counted */
     }
-    if(PortChange & TinyPinChange_PinToMsk(SECOND_INPUT)) /* Check SECOND_INPUT has changed */
+    
+    if(TinyPinChange_Edge(VirtualPortNb_, SECOND_INPUT)) /* Check SECOND_INPUT has changed (falling or rising edge) */
     {
         SecondInputChangeCount++; /* Rising AND Falling edges are counted */
     }
@@ -113,17 +112,17 @@ uint8_t PortChange;
 
 void loop()
 {
-static boolean State=HIGH, DisplayEnabled=false;
-static uint32_t LedStartMs=millis(), DisplayStartMs=millis();
+static boolean State = HIGH, DisplayEnabled = true;
+static uint32_t LedStartMs = millis(), DisplayStartMs = millis();
 uint16_t LocalFirstInputChangeCount;
 uint16_t LocalSecondInputChangeCount;
 
   /* Blink the built-in LED */
-  if(millis()-LedStartMs >= 500)
+  if(millis() - LedStartMs >= 500UL)
   {
-    LedStartMs=millis();
+    LedStartMs = millis();
     digitalWrite(LED_PIN, State);
-    State=!State; /* State will be inverted at the next digitalWrite() */
+    State = !State; /* State will be inverted at the next digitalWrite() */
   }
   
   /* Get command from single wire SoftSerial */
@@ -132,19 +131,19 @@ uint16_t LocalSecondInputChangeCount;
     switch(MySerial.read())
     {
       case '0':
-      DisplayEnabled=false;
+      DisplayEnabled = false;
       break;
       
       case '1':
-      DisplayEnabled=true;
+      DisplayEnabled = true;
       break;
     }
   }
 
   /* Diplay Transition numbers every second */
-  if((millis()-DisplayStartMs >= 1000) && DisplayEnabled)
+  if((millis() - DisplayStartMs >= 1000UL) && DisplayEnabled)
   {
-    DisplayStartMs=millis();
+    DisplayStartMs = millis();
     noInterrupts(); /* Mandatory since counters are 16 bits */
     LocalFirstInputChangeCount = FirstInputChangeCount;
     LocalSecondInputChangeCount = SecondInputChangeCount;

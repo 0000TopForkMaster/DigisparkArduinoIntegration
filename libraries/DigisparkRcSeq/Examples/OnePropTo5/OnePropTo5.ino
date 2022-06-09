@@ -1,12 +1,16 @@
 #include <RcSeq.h>
 #include <TinyPinChange.h>
 #include <SoftRcPulseIn.h>
-#include <SoftRcPulseOut.h>
+#include <Rcul.h>
 
 /*
+IMPORTANT:
+For this sketch to compile, RC_SEQ_WITH_SOFT_RC_PULSE_IN_SUPPORT and RC_SEQ_WITH_SHORT_ACTION_SUPPORT shall be defined
+in PathOfTheLibraries/(Digispark)RcSeq/RcSeq.h and RC_SEQ_WITH_SOFT_RC_PULSE_OUT_SUPPORT shall be commented.
+
 This sketch demonstrates how to easily transform a proportionnal RC channel into 5 digital commands with an ATtiny85.
 RC Navy (2013)
-http://P.loussouarn.free.fr
+http://p.loussouarn.free.fr
 
 COMMMAND OF 5 digital outputs from 5 push button replacing a potentiometer in the RC transmitter:
 ================================================================================================
@@ -78,21 +82,30 @@ enum {RC_CHANNEL, RC_CHANNEL_NB}; /* Here, as there is a single channel, we coul
 /* Declaration of the custom keyboard": the pulse width of the push buttons do not need to be equidistant */
 enum {PUSH_BUTTON1, PUSH_BUTTON2, PUSH_BUTTON3, PUSH_BUTTON4, PUSH_BUTTON5, PUSH_BUTTON_NBR};
 #define TOLERANCE  40 /* Tolerance  +/- (in microseconds): CAUTION, no overlap allowed between 2 adjacent active areas . active area width = 2 x TOLERANCE (us) */
-KeyMap_t CustomKeyboard[] PROGMEM ={ {CENTER_VALUE_US(1100,TOLERANCE)}, /* PUSH_BUTTON1: +/-40 us */
-                                     {CENTER_VALUE_US(1300,TOLERANCE)}, /* PUSH_BUTTON2: +/-40 us */
-                                     {CENTER_VALUE_US(1500,TOLERANCE)}, /* PUSH_BUTTON3: +/-40 us */
-                                     {CENTER_VALUE_US(1700,TOLERANCE)}, /* PUSH_BUTTON4: +/-40 us */
-                                     {CENTER_VALUE_US(1900,TOLERANCE)}, /* PUSH_BUTTON5: +/-40 us */
+const KeyMap_t CustomKeyboard[] PROGMEM ={ {CENTER_VALUE_US(1100,TOLERANCE)}, /* PUSH_BUTTON1: +/-40 us */
+                                           {CENTER_VALUE_US(1300,TOLERANCE)}, /* PUSH_BUTTON2: +/-40 us */
+                                           {CENTER_VALUE_US(1500,TOLERANCE)}, /* PUSH_BUTTON3: +/-40 us */
+                                           {CENTER_VALUE_US(1700,TOLERANCE)}, /* PUSH_BUTTON4: +/-40 us */
+                                           {CENTER_VALUE_US(1900,TOLERANCE)}, /* PUSH_BUTTON5: +/-40 us */
                                   };
 
 //==============================================================================================
 /* Trick: a macro to write a single time the ToggleAction#() function */
-#define DECLARE_TOGGLE_ACTION(Idx) \
-void ToggleAction##Idx(void)       \
-{                                  \
-static boolean Etat=HIGH;          \
-    digitalWrite(Idx, Etat);       \
-    Etat=!Etat;                    \
+#define DECLARE_TOGGLE_ACTION(Idx)                \
+void ToggleAction##Idx(void)                      \
+{                                                 \
+static uint32_t StartMs=millis();                 \
+static boolean Etat=HIGH;                         \
+                                                  \
+/* Since version 2.0 of the <RcSeq> library,   */ \
+/* for reactivity reasons, inter-command delay */ \
+/* shall be managed in the user sketch.        */ \
+  if(millis() - StartMs >= 500UL)                 \
+  {                                               \
+    StartMs=millis();                             \
+    digitalWrite(Idx, Etat);                      \
+    Etat=!Etat;                                   \
+  }                                               \
 }
 
 /* Declaration of the actions using the DECLARE_TOGGLE_ACTION(Idx) macro with Idx = The number of the action and the pin number (The ##Idx will be automatically replaced with the Idx value */

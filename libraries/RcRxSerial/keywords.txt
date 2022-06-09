@@ -1,0 +1,23 @@
+#######################################
+# Syntax Coloring Map RcRxSerial
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+RcRxSerial	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+available	KEYWORD2
+read	KEYWORD2
+msgAvailable	KEYWORD2
+lastWidth_us	KEYWORD2
+nibbleAvailable	KEYWORD2
+reassignRculSrc	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
